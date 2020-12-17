@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+
+	"os/exec"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
@@ -38,7 +42,26 @@ func getDiskStats() {
 }
 
 func main() {
-	getCPUStats()
-	getMemStats()
-	getDiskStats()
+	cmd := exec.Command("system_profiler", "-detailLevel", "mini", "-json", "SPHardwareDataType")
+	response, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var testJSON map[string][](map[string]interface{}) //map[string](map[string][]string)
+	err = json.Unmarshal(response, &testJSON)
+	handle(err)
+	info := make(map[string]interface{})
+	hardwareInfo := testJSON["SPHardwareDataType"][0]
+	info["Machine Model:"] = hardwareInfo["machine_model"]
+	info["Memory:"] = hardwareInfo["physical_memory"]
+	info["CPU Type:"] = hardwareInfo["cpu_type"]
+	for k := range info {
+		fmt.Println(k, info[k])
+	}
+	// fmt.Printf(testJSON)
+	// fmt.Printf("%T", testJSON)
+	// getCPUStats()
+	// getMemStats()
+	// getDiskStats()
 }
