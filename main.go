@@ -57,26 +57,9 @@ func handle(err error) {
 // 	}
 // }
 
-// func serveUp() {
-// 	content := []byte("Hello world!")
-// 	tmpfile, err := ioutil.TempFile("", "example")
-// 	handle(err)
-
-// 	defer os.Remove(tmpfile.Name()) // clean up
-// 	fmt.Println(tmpfile.Name())
-// 	if _, err := tmpfile.Write(content); err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	if err := tmpfile.Close(); err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// }
-
 func serveUp() {
 
 	// Use npm package inliner to compile the whole project into a single html doc
-
 	browser.OpenURL("http://localhost:8080")
 	http.HandleFunc("/", handler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -84,33 +67,9 @@ func serveUp() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	const quote = `
-	<!DOCTYPE html>
-	<html lang="en">
-
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Document</title>
-	</head>
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-
-	<!-- jQuery library -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
-	<!-- Latest compiled JavaScript -->
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-
-	<body>
-		<h1>Hello world!</h1>
-	</body>
-
-	</html>
-	
-	
-	`
-	fmt.Fprintf(w, quote)
+	data, err := Asset("index.html")
+	handle(err)
+	fmt.Fprintf(w, string(data))
 }
 
 func main() {
