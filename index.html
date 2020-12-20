@@ -16,8 +16,24 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
 <body>
-    <h1>Hello world!</h1>
-    <div id="cpuInfo"></div>
+    <h1>Information for Intake</h1>
+    <p> 
+        Serial Number: {{.SerialNumber}}
+    <br>
+        CPU Model: {{.CPUModel}}
+    <br>
+        CPU Specs: {{.CPUSpecs}}     
+    <br>
+        Memory: {{.Memory}}     
+    <br>
+        Battery Health: {{.BatteryHealth}}
+    <br>
+        Hard Drive Capacity: {{.HDCapacity}}
+    <br>
+        Device Serial Number: {{.SerialNumber}} 
+    <br>
+        Device Model: {{.MachineModel}}
+    </p>
 </body>
 
 <script>
