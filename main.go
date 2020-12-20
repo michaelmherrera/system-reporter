@@ -17,6 +17,8 @@ system_profiler -detailLevel mini -json SPHardwareDataType> ~/output.jso
 */
 const bytesToGig = 1024 * 1024 * 1024
 
+var macInfo *MacOSInfo
+
 // MacOSInfo comment to stop go from complaining
 type MacOSInfo struct {
 	CPUModel      string
@@ -25,12 +27,12 @@ type MacOSInfo struct {
 	BatteryHealth string
 	HDCapacity    string
 	SerialNumber  string
-	MachineModel  string
+	DeviceModel   string
 }
 
 func handle(err error) {
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -63,10 +65,11 @@ func getStorageSpecs(profileJSON *map[string][](map[string]interface{}), info *M
 func getProductSpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
 	hardwareInfo := (*profileJSON)["SPHardwareDataType"][0]
 	info.SerialNumber = hardwareInfo["serial_number"].(string)
-	info.MachineModel = hardwareInfo["machine_model"].(string)
+	info.DeviceModel = hardwareInfo["machine_model"].(string)
 }
 
-func profileMac(info *MacOSInfo) {
+func profileMac() *MacOSInfo {
+	info := new(MacOSInfo)
 	cmd := exec.Command("system_profiler", "-json", "SPHardwareDataType", "SPStorageDataType", "SPPowerDataType")
 	response, err := cmd.Output()
 	if err != nil {
@@ -83,7 +86,7 @@ func profileMac(info *MacOSInfo) {
 	getStorageSpecs(&profileJSON, info)
 	getMemorySpecs(&profileJSON, info)
 	getProductSpecs(&profileJSON, info)
-
+	return info
 }
 
 func serveUp(info *MacOSInfo) {
@@ -112,8 +115,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dataEndpoint(w http.ResponseWriter, r *http.Request) {
-	macInfo := new(MacOSInfo)
-	macSystemProfiler(macInfo)
+	if macInfo == nil {
+		// If this is the first time the data endpoint has been
+		// hit, retrieve the info
+		macInfo = profileMac()
+	}
 	json.NewEncoder(w).Encode(*macInfo)
 }
 

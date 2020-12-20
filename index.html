@@ -14,34 +14,55 @@
 
 <!-- Latest compiled JavaScript -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<style>
+    #col {
+     width: 700px;
+     margin: 0 auto;
+    }
+
+</style>
 
 <body>
-    <h1>Information for Intake</h1>
-    <p> 
-        Serial Number: {{.SerialNumber}}
-    <br>
-        CPU Model: {{.CPUModel}}
-    <br>
-        CPU Specs: {{.CPUSpecs}}     
-    <br>
-        Memory: {{.Memory}}     
-    <br>
-        Battery Health: {{.BatteryHealth}}
-    <br>
-        Hard Drive Capacity: {{.HDCapacity}}
-    <br>
-        Device Serial Number: {{.SerialNumber}} 
-    <br>
-        Device Model: {{.MachineModel}}
-    </p>
+    <div id="col">
+        <h1>Information for Intake</h1>
+        <br>
+        CPU Model: <span id="CPUModel">Retrieving...</span>
+        <br>
+        CPU Specs: <span id="CPUSpecs">Retrieving...</span>
+        <br>
+        Memory: <span id="Memory">Retrieving...</span>
+        <br>
+        Battery Health: <span id="BatteryHealth">Retrieving...</span>
+        <br>
+        Hard Drive Capacity: <span id="HDCapacity">Retrieving...</span>
+        <br>
+        Device Serial Number: <span id="SerialNumber">Retrieving...</span>
+        <br>
+        Device Model: <span id="DeviceModel">Retrieving...</span>
+        </p>
+    </div>
 </body>
 
 <script>
     fetch('/data.json')
-    .then(response => response.json())
-    .then(data => {
-        console.log(data)
-    });
+        .then(response => response.json())
+        .then(data => {
+            fields = [
+                "CPUSpecs",
+                "CPUModel",
+                "Memory",
+                "BatteryHealth",
+                "HDCapacity",
+                "SerialNumber",
+                "DeviceModel"
+            ]
+            for (const i in fields) {
+                fieldName = fields[i]
+                document.getElementById(fieldName).innerHTML = data[fieldName]
+            }
+        });
 </script>
+
+
 
 </html>
