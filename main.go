@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
+	"os/exec"
 
 	"github.com/pkg/browser"
+	"github.com/shirou/gopsutil/cpu"
 )
 
 /*
@@ -13,69 +17,96 @@ system_profiler -detailLevel mini -json SPHardwareDataType> ~/output.jso
 */
 const bytesToGig = 1024 * 1024 * 1024
 
+// MacOSInfo comment to stop go from complaining
+type MacOSInfo struct {
+	CPUModel      string
+	CPUSpecs      string
+	Memory        string
+	BatteryHealth string
+	HDCapacity    string
+	SerialNumber  string
+	MachineModel  string
+}
+
 func handle(err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-// func getCPUStats() {
-// 	cpuStat, err := cpu.Info()
-// 	handle(err)
-// 	fmt.Println("CPU Model:", cpuStat[0].ModelName)
-// }
+func getCPUSpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
+	cpuStat, err := cpu.Info()
+	handle(err)
+	info.CPUModel = cpuStat[0].ModelName
+	info.CPUSpecs = (*profileJSON)["SPHardwareDataType"][0]["cpu_type"].(string)
 
-// func getMemStats() {
-// 	memStat, err := mem.VirtualMemory()
-// 	handle(err)
-// 	fmt.Println("RAM:", memStat.Total/bytesToGig, "GB")
-// }
+}
 
-// func getDiskStats() {
-// 	diskStat, err := disk.Usage("/")
-// 	handle(err)
-// 	fmt.Println("Storage:", diskStat.Total/bytesToGig, "GB")
-// }
+func getMemorySpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
+	info.Memory = (*profileJSON)["SPHardwareDataType"][0]["physical_memory"].(string)
+}
 
-// func macSystemProfiler() {
-// 	cmd := exec.Command("system_profiler", "-detailLevel", "mini", "-json", "SPHardwareDataType")
-// 	response, err := cmd.Output()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func getBatterySpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
+	health := (*profileJSON)["SPPowerDataType"][0]["sppower_battery_health_info"].(map[string]interface{})
+	info.BatteryHealth = health["sppower_battery_health"].(string)
+}
 
-// 	var testJSON map[string][](map[string]interface{})
-// 	err = json.Unmarshal(response, &testJSON)
-// 	handle(err)
-// 	info := make(map[string]interface{})
-// 	hardwareInfo := testJSON["SPHardwareDataType"][0]
-// 	info["Machine Model:"] = hardwareInfo["machine_model"]
-// 	info["Memory:"] = hardwareInfo["physical_memory"]
-// 	info["CPU Type:"] = hardwareInfo["cpu_type"]
-// 	for k := range info {
-// 		fmt.Println(k, info[k])
-// 	}
-// }
+func getStorageSpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
+	for _, storageDevice := range (*profileJSON)["SPStorageDataType"] {
+		if storageDevice["_name"] == "Macintosh HD" {
+			// Apples uses 1 billion bytes to a gigabyte, rather than 2^30
+			info.HDCapacity = fmt.Sprintf("%d GB", int(storageDevice["size_in_bytes"].(float64)/1e9))
+		}
+	}
+}
 
-func serveUp() {
+func getProductSpecs(profileJSON *map[string][](map[string]interface{}), info *MacOSInfo) {
+	hardwareInfo := (*profileJSON)["SPHardwareDataType"][0]
+	info.SerialNumber = hardwareInfo["serial_number"].(string)
+	info.MachineModel = hardwareInfo["machine_model"].(string)
+}
+
+func profileMac(info *MacOSInfo) {
+	cmd := exec.Command("system_profiler", "-json", "SPHardwareDataType", "SPStorageDataType", "SPPowerDataType")
+	response, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var profileJSON map[string][](map[string]interface{})
+
+	err = json.Unmarshal(response, &profileJSON)
+	handle(err)
+
+	getCPUSpecs(&profileJSON, info)
+	getBatterySpecs(&profileJSON, info)
+	getStorageSpecs(&profileJSON, info)
+	getMemorySpecs(&profileJSON, info)
+	getProductSpecs(&profileJSON, info)
+
+}
+
+func serveUp(info *MacOSInfo) {
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		data, err := Asset("index.html")
+		handle(err)
+		tmpl, err := template.New("test").Parse(string(data))
+		handle(err)
+
+		tmpl.Execute(w, info)
+	}
 
 	// Use npm package inliner to compile the whole project into a single html doc
 	browser.OpenURL("http://localhost:8080")
+
 	http.HandleFunc("/", handler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	data, err := Asset("index.html")
-	handle(err)
-	fmt.Fprintf(w, string(data))
-}
-
 func main() {
-	serveUp()
-	// macSystemProfiler()
-	// getCPUStats()
-	// getMemStats()
-	// getDiskStats()
+	info := new(MacOSInfo)
+	profileMac(info)
+	serveUp(info)
 }
