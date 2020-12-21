@@ -39,7 +39,11 @@
         Device Serial Number: <span id="SerialNumber">Retrieving...</span>
         <br>
         Device Model: <span id="DeviceModel">Retrieving...</span>
-        </p>
+        <br>
+        Device Family: <span id="DeviceFamily">Retrieving...</span>
+        <br>
+        Device SKU: <span id="DeviceSKU">Retrieving...</span>
+    </p>
     </div>
 </body>
 
@@ -54,7 +58,9 @@
                 "BatteryHealth",
                 "HDCapacity",
                 "SerialNumber",
-                "DeviceModel"
+                "DeviceModel",
+                "DeviceFamily",
+                "DeviceSKU"
             ]
             for (const i in fields) {
                 fieldName = fields[i]
